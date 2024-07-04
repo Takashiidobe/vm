@@ -21,9 +21,9 @@ pub enum Instruction {
     Div(Reg, Reg),          // Div R1, R2 -> R2
     PrintReg(Reg),          // Print Reg
     Jump(Offset),           // Jump Forward or backward
-    JumpTrue(Offset),       // Jump Forward or backwards if status is true
-    JumpFalse(Offset),      // Jump Forward or backwards if status is false
-    Cmp(Reg, Reg),          // Compare
+    JumpTrue(Offset),       // Jump Forward or backwards if the condition flag is true.
+    JumpFalse(Offset),      // Jump Forward or backwards if the condition flag is false.
+    Cmp(Reg, Reg),          // Compare R1 to R2, setting the condition flag.
 }
 
 impl Instruction {

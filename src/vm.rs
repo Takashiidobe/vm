@@ -87,8 +87,13 @@ impl VM {
 pub fn instruction_to_bytes(instructions: &[Instruction]) -> Vec<u8> {
     let mut bytes = vec![];
     for instruction in instructions {
-        let encoded_instruction = Instruction::encode(instruction);
-        bytes.extend(encoded_instruction);
+        let encoded = Instruction::encode(instruction);
+        print!("[");
+        for byte in &encoded {
+            print!("{:#04x},", byte);
+        }
+        println!("]");
+        bytes.extend(encoded);
     }
     bytes
 }
