@@ -1,6 +1,6 @@
 use crate::{
     instruction::Instruction,
-    utils::{u8_to_u16, REGISTER_COUNT, STACK_SIZE},
+    utils::{u8_to_i16, u8_to_u16, REGISTER_COUNT, STACK_SIZE},
 };
 
 use std::process::exit;
@@ -12,6 +12,7 @@ pub struct VM {
     stack: [u16; STACK_SIZE],
     ip: usize,
     instructions: Vec<Instruction>,
+    cond: bool,
 }
 
 impl Default for VM {
@@ -21,14 +22,17 @@ impl Default for VM {
             registers: Default::default(),
             ip: 0,
             instructions: Default::default(),
+            cond: false,
         }
     }
 }
 
 impl VM {
     pub fn run(&mut self, instructions: &[Instruction]) {
-        for instruction in instructions {
+        while self.ip < instructions.len() {
+            let instruction = &instructions[self.ip];
             self.run_instruction(instruction);
+            self.ip += 1;
         }
     }
 
@@ -47,6 +51,34 @@ impl VM {
             CopyRR(r1, r2) => self.registers[*r2 as usize] = self.registers[*r1 as usize],
             CopyRS(reg, stack_pos) => {
                 self.stack[*stack_pos as usize] = self.registers[*reg as usize]
+            }
+            Jump(offset) => {
+                if *offset > 0 {
+                    self.ip += *offset as usize;
+                } else {
+                    self.ip -= offset.unsigned_abs() as usize;
+                }
+            }
+            JumpTrue(offset) => {
+                if self.cond {
+                    if *offset > 0 {
+                        self.ip += *offset as usize;
+                    } else {
+                        self.ip -= offset.unsigned_abs() as usize;
+                    }
+                }
+            }
+            JumpFalse(offset) => {
+                if !self.cond {
+                    if *offset > 0 {
+                        self.ip += *offset as usize;
+                    } else {
+                        self.ip -= offset.unsigned_abs() as usize;
+                    }
+                }
+            }
+            Cmp(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] == self.registers[*r2 as usize];
             }
         }
     }
@@ -74,14 +106,12 @@ pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {
             }
             0x01 => {
                 let b1 = u8_to_u16(bytes[i + 1], bytes[i + 2]);
-                let reg = bytes[i + 3];
-                instructions.push(PutReg(b1, reg.into()));
+                instructions.push(PutReg(b1, bytes[i + 3].into()));
                 i += 4;
             }
             0x02 => {
                 let b1 = u8_to_u16(bytes[i + 1], bytes[i + 2]);
-                let reg = bytes[i + 3];
-                instructions.push(CopySR(b1, reg.into()));
+                instructions.push(CopySR(b1, bytes[i + 3].into()));
                 i += 4;
             }
             0x03 => {
@@ -89,9 +119,8 @@ pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {
                 i += 3;
             }
             0x04 => {
-                let reg = bytes[i + 1];
                 let b1 = u8_to_u16(bytes[i + 2], bytes[i + 3]);
-                instructions.push(CopyRS(reg.into(), b1));
+                instructions.push(CopyRS(bytes[i + 1].into(), b1));
                 i += 4;
             }
             0x05 => {
@@ -113,6 +142,25 @@ pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {
             0x09 => {
                 instructions.push(PrintReg(bytes[i + 1].into()));
                 i += 2;
+            }
+            0x10 => {
+                let offset = u8_to_i16(bytes[i + 1], bytes[i + 2]);
+                instructions.push(Jump(offset));
+                i += 3;
+            }
+            0x11 => {
+                let offset = u8_to_i16(bytes[i + 1], bytes[i + 2]);
+                instructions.push(JumpTrue(offset));
+                i += 3;
+            }
+            0x12 => {
+                let offset = u8_to_i16(bytes[i + 1], bytes[i + 2]);
+                instructions.push(JumpFalse(offset));
+                i += 3;
+            }
+            0x13 => {
+                instructions.push(Cmp(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
             }
             _ => panic!("invalid byte: {byte}"),
         }
@@ -169,6 +217,13 @@ mod tests {
                     rng.gen_range(0..=u8::MAX).into(),
                 ),
                 0x09 => Add(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x10 => Jump(rng.gen_range(0..=i16::MAX)),
+                0x11 => JumpTrue(rng.gen_range(0..=i16::MAX)),
+                0x12 => JumpFalse(rng.gen_range(0..=i16::MAX)),
+                0x13 => Cmp(
                     rng.gen_range(0..=u8::MAX).into(),
                     rng.gen_range(0..=u8::MAX).into(),
                 ),
