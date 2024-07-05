@@ -25,7 +25,12 @@ pub enum Instruction {
     Jump(Offset),           // Jump Forward or backward
     JumpTrue(Offset),       // Jump Forward or backwards if the condition flag is true.
     JumpFalse(Offset),      // Jump Forward or backwards if the condition flag is false.
-    Cmp(Reg, Reg),          // Compare R1 to R2, setting the condition flag.
+    Eq(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 == R2
+    Neq(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 != R2
+    Lt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 < R2
+    Lte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 <= R2
+    Gt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 > R2
+    Gte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 >= R2
 }
 
 impl fmt::Display for Instruction {
@@ -44,7 +49,12 @@ impl fmt::Display for Instruction {
             Jump(offset) => &format!("jump {offset}"),
             JumpTrue(offset) => &format!("jumptrue {offset}"),
             JumpFalse(offset) => &format!("jumpfalse {offset}"),
-            Cmp(r1, r2) => &format!("cmp {r1} {r2}"),
+            Eq(r1, r2) => &format!("eq {r1} {r2}"),
+            Neq(r1, r2) => &format!("neq {r1} {r2}"),
+            Lt(r1, r2) => &format!("lt {r1} {r2}"),
+            Lte(r1, r2) => &format!("lte {r1} {r2}"),
+            Gt(r1, r2) => &format!("gt {r1} {r2}"),
+            Gte(r1, r2) => &format!("gte {r1} {r2}"),
         };
         f.write_str(s)
     }
@@ -84,7 +94,12 @@ impl Instruction {
                 let [b1, b2] = i16_to_u8(offset);
                 vec![0x12, b1, b2]
             }
-            Cmp(r1, r2) => vec![0x13, r1 as u8, r2 as u8],
+            Eq(r1, r2) => vec![0x13, r1 as u8, r2 as u8],
+            Neq(r1, r2) => vec![0x14, r1 as u8, r2 as u8],
+            Lt(r1, r2) => vec![0x15, r1 as u8, r2 as u8],
+            Lte(r1, r2) => vec![0x16, r1 as u8, r2 as u8],
+            Gt(r1, r2) => vec![0x17, r1 as u8, r2 as u8],
+            Gte(r1, r2) => vec![0x18, r1 as u8, r2 as u8],
         }
     }
 }

@@ -15,7 +15,7 @@ $ cat asm/while-loop.asm
 putreg 0 R0
 putreg 1 R1
 putreg 5 R2
-cmp R0 R2
+eq R0 R2
 jumptrue 3
 printreg R0
 add R1 R0
@@ -74,20 +74,28 @@ instructions, or a Register, a `u8` that indicates which register to
 use.
 
 ```
-Ret,                    // Return R0
-PutReg(Immediate, Reg), // Put u16 -> Reg
-CopySR(StackPos, Reg),  // Load Stack -> Reg
-CopyRR(Reg, Reg),       // Copy Reg -> Reg
-CopyRS(Reg, StackPos),  // Copy Reg -> Stack
-Add(Reg, Reg),          // Add R1, R2 -> R2
-Sub(Reg, Reg),          // Sub R1, R2 -> R2
-Mul(Reg, Reg),          // Mul R1, R2 -> R2
-Div(Reg, Reg),          // Div R1, R2 -> R2
-PrintReg(Reg),          // Print Reg
-Jump(Offset),           // Jump Forward or backward
-JumpTrue(Offset),       // Jump Forward or backwards if status is true
-JumpFalse(Offset),      // Jump Forward or backwards if status is false
-Cmp(Reg, Reg),          // Compare R1 to R2, setting the condition flag.
+#[derive(Debug, Clone, PartialEq)]
+pub enum Instruction {
+    Ret,                    // Return R0
+    PutReg(Immediate, Reg), // Put u16 -> Reg
+    CopySR(StackPos, Reg),  // Load Stack -> Reg
+    CopyRR(Reg, Reg),       // Copy Reg -> Reg
+    CopyRS(Reg, StackPos),  // Copy Reg -> Stack
+    Add(Reg, Reg),          // Add R1, R2 -> R2
+    Sub(Reg, Reg),          // Sub R1, R2 -> R2
+    Mul(Reg, Reg),          // Mul R1, R2 -> R2
+    Div(Reg, Reg),          // Div R1, R2 -> R2
+    PrintReg(Reg),          // Print Reg
+    Jump(Offset),           // Jump Forward or backward
+    JumpTrue(Offset),       // Jump Forward or backwards if the condition flag is true.
+    JumpFalse(Offset),      // Jump Forward or backwards if the condition flag is false.
+    Eq(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 == R2
+    Neq(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 != R2
+    Lt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 < R2
+    Lte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 <= R2
+    Gt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 > R2
+    Gte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 >= R2
+}
 ```
 
 There's currently no way to load immediates onto the stack, so a load to
@@ -130,7 +138,7 @@ Take these instructions:
 ```
 PutReg(20, R0),
 PutReg(20, R1),
-Cmp(R0, R1),
+Eq(R0, R1),
 JumpFalse(3),
 PutReg(0, R0),
 PrintReg(R0),
@@ -146,7 +154,7 @@ That would be encoded into these bytes:
 ```
 PutReg(20, R0): [0x01,0x14,0x00,0x00]
 PutReg(20, R1): [0x01,0x14,0x00,0x01]
-Cmp(R0, R1): [0x13,0x00,0x01]
+Eq(R0, R1): [0x13,0x00,0x01]
 JumpFalse(3): [0x12,0x03,0x00]
 PutReg(0, R0): [0x01,0x00,0x00,0x00]
 PrintReg(R0): [0x09,0x00]

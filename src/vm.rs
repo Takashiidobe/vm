@@ -77,8 +77,23 @@ impl VM {
                     }
                 }
             }
-            Cmp(r1, r2) => {
+            Eq(r1, r2) => {
                 self.cond = self.registers[*r1 as usize] == self.registers[*r2 as usize];
+            }
+            Neq(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] != self.registers[*r2 as usize];
+            }
+            Lt(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] < self.registers[*r2 as usize];
+            }
+            Lte(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] <= self.registers[*r2 as usize];
+            }
+            Gt(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] > self.registers[*r2 as usize];
+            }
+            Gte(r1, r2) => {
+                self.cond = self.registers[*r1 as usize] >= self.registers[*r2 as usize];
             }
         }
     }
@@ -116,6 +131,7 @@ pub fn asm_to_instructions(s: &str) -> Vec<Instruction> {
         let l = line.trim();
         let parts: Vec<_> = l.split_whitespace().collect();
         match parts.as_slice() {
+            ["#", ..] => {} // ignore comments, these start with #
             ["ret"] => instructions.push(Ret),
             ["putreg", imm, reg] => {
                 instructions.push(PutReg(str_to_u16(imm), reg.to_owned().into()));
@@ -153,8 +169,23 @@ pub fn asm_to_instructions(s: &str) -> Vec<Instruction> {
             ["jumpfalse", offset] => {
                 instructions.push(JumpFalse(str_to_i16(offset)));
             }
-            ["cmp", r1, r2] => {
-                instructions.push(Cmp(r1.to_owned().into(), r2.to_owned().into()));
+            ["eq", r1, r2] => {
+                instructions.push(Eq(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["neq", r1, r2] => {
+                instructions.push(Neq(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["lt", r1, r2] => {
+                instructions.push(Lt(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["lte", r1, r2] => {
+                instructions.push(Lte(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["gt", r1, r2] => {
+                instructions.push(Gt(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["gte", r1, r2] => {
+                instructions.push(Gte(r1.to_owned().into(), r2.to_owned().into()));
             }
             _ => panic!("Invalid instruction: {l}"),
         }
@@ -229,7 +260,27 @@ pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {
                 i += 3;
             }
             0x13 => {
-                instructions.push(Cmp(bytes[i + 1].into(), bytes[i + 2].into()));
+                instructions.push(Eq(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
+            }
+            0x14 => {
+                instructions.push(Neq(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
+            }
+            0x15 => {
+                instructions.push(Lt(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
+            }
+            0x16 => {
+                instructions.push(Lte(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
+            }
+            0x17 => {
+                instructions.push(Gt(bytes[i + 1].into(), bytes[i + 2].into()));
+                i += 3;
+            }
+            0x18 => {
+                instructions.push(Gte(bytes[i + 1].into(), bytes[i + 2].into()));
                 i += 3;
             }
             _ => panic!("invalid byte: {byte}"),
@@ -293,7 +344,27 @@ mod tests {
                 0x10 => Jump(rng.gen_range(0..=i16::MAX)),
                 0x11 => JumpTrue(rng.gen_range(0..=i16::MAX)),
                 0x12 => JumpFalse(rng.gen_range(0..=i16::MAX)),
-                0x13 => Cmp(
+                0x13 => Eq(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x14 => Neq(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x15 => Lt(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x16 => Lte(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x17 => Gt(
+                    rng.gen_range(0..=u8::MAX).into(),
+                    rng.gen_range(0..=u8::MAX).into(),
+                ),
+                0x18 => Gte(
                     rng.gen_range(0..=u8::MAX).into(),
                     rng.gen_range(0..=u8::MAX).into(),
                 ),
