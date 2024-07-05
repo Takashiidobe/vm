@@ -1,7 +1,64 @@
 # VM
 
-This project implements a small VM language that supports encoding and
-decoding.
+This project implements a small VM language that supports encoding to
+binary and decoding from binary to run a program.
+
+## Usage
+
+Instructions can be written in an assembly form, encoded to binary, and
+run from the binary form.
+
+Take this file, which counts from 0 to 4:
+
+```sh
+$ cat asm/while-loop.asm
+putreg 0 R0
+putreg 1 R1
+putreg 5 R2
+cmp R0 R2
+jumptrue 3
+printreg R0
+add R1 R0
+jump -5
+putreg 0 R0
+ret
+```
+
+We can encode this into binary:
+
+```sh
+$ cargo r -q -- -e asm/while-loop.asm out.bin
+```
+
+And `xxd` it to see its binary form:
+
+```sh
+$ xxd out.bin
+00000000: 0100 0000 0101 0001 0105 0002 1300 0211  ................
+00000010: 0300 0900 0501 0010 fbff 0100 0000 00    ...............
+```
+
+We can then run this binary in the VM:
+
+```sh
+$ cargo r -q -- -d out.bin
+0
+1
+2
+3
+4
+```
+
+It's also possible to run the assembly directly on the VM:
+
+```sh
+$ cargo r -q -- -r asm/while-loop.asm
+0
+1
+2
+3
+4
+```
 
 ## VM Internals
 

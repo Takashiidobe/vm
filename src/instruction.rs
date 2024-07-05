@@ -1,3 +1,5 @@
+use core::fmt;
+
 use crate::{
     register::Reg,
     utils::{i16_to_u8, u16_to_u8},
@@ -24,6 +26,28 @@ pub enum Instruction {
     JumpTrue(Offset),       // Jump Forward or backwards if the condition flag is true.
     JumpFalse(Offset),      // Jump Forward or backwards if the condition flag is false.
     Cmp(Reg, Reg),          // Compare R1 to R2, setting the condition flag.
+}
+
+impl fmt::Display for Instruction {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let s = match self {
+            Ret => "ret",
+            PutReg(imm, reg) => &format!("putreg {imm} {reg}"),
+            CopySR(pos, reg) => &format!("copysr {pos} {reg}"),
+            CopyRR(r1, r2) => &format!("copyrr {r1} {r2}"),
+            CopyRS(reg, pos) => &format!("copyrs {reg} {pos}"),
+            Add(r1, r2) => &format!("add {r1} {r2}"),
+            Sub(r1, r2) => &format!("sub {r1} {r2}"),
+            Mul(r1, r2) => &format!("mul {r1} {r2}"),
+            Div(r1, r2) => &format!("div {r1} {r2}"),
+            PrintReg(reg) => &format!("printreg {reg}"),
+            Jump(offset) => &format!("jump {offset}"),
+            JumpTrue(offset) => &format!("jumptrue {offset}"),
+            JumpFalse(offset) => &format!("jumpfalse {offset}"),
+            Cmp(r1, r2) => &format!("cmp {r1} {r2}"),
+        };
+        f.write_str(s)
+    }
 }
 
 impl Instruction {

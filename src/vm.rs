@@ -88,14 +88,79 @@ pub fn instruction_to_bytes(instructions: &[Instruction]) -> Vec<u8> {
     let mut bytes = vec![];
     for instruction in instructions {
         let encoded = Instruction::encode(instruction);
-        print!("[");
-        for byte in &encoded {
-            print!("{:#04x},", byte);
-        }
-        println!("]");
         bytes.extend(encoded);
     }
     bytes
+}
+
+pub fn instructions_to_asm(instructions: &[Instruction]) -> Vec<String> {
+    let mut asm = vec![];
+    for instruction in instructions {
+        asm.push(instruction.to_string());
+    }
+    asm
+}
+
+fn str_to_u16(s: &str) -> u16 {
+    s.parse().expect("Could not parse value to u16: {s}")
+}
+
+fn str_to_i16(s: &str) -> i16 {
+    s.parse().expect("Could not parse value to i16: {s}")
+}
+
+pub fn asm_to_instructions(s: &str) -> Vec<Instruction> {
+    let mut instructions = vec![];
+
+    for line in s.lines() {
+        let l = line.trim();
+        let parts: Vec<_> = l.split_whitespace().collect();
+        match parts.as_slice() {
+            ["ret"] => instructions.push(Ret),
+            ["putreg", imm, reg] => {
+                instructions.push(PutReg(str_to_u16(imm), reg.to_owned().into()));
+            }
+            ["copysr", stack_pos, reg] => {
+                instructions.push(CopySR(str_to_u16(stack_pos), reg.to_owned().into()));
+            }
+            ["copyrr", r1, r2] => {
+                instructions.push(CopyRR(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["copyrs", stack_pos, reg] => {
+                instructions.push(CopyRS(reg.to_owned().into(), str_to_u16(stack_pos)));
+            }
+            ["add", r1, r2] => {
+                instructions.push(Add(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["sub", r1, r2] => {
+                instructions.push(Sub(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["mul", r1, r2] => {
+                instructions.push(Mul(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["div", r1, r2] => {
+                instructions.push(Div(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["printreg", reg] => {
+                instructions.push(PrintReg(reg.to_owned().into()));
+            }
+            ["jump", offset] => {
+                instructions.push(Jump(str_to_i16(offset)));
+            }
+            ["jumptrue", offset] => {
+                instructions.push(JumpTrue(str_to_i16(offset)));
+            }
+            ["jumpfalse", offset] => {
+                instructions.push(JumpFalse(str_to_i16(offset)));
+            }
+            ["cmp", r1, r2] => {
+                instructions.push(Cmp(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            _ => panic!("Invalid instruction: {l}"),
+        }
+    }
+
+    instructions
 }
 
 pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {

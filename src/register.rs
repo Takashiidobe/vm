@@ -1,3 +1,5 @@
+use std::fmt;
+
 use Reg::*;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,6 +20,54 @@ pub enum Reg {
     R13,
     R14,
     R15,
+}
+
+impl fmt::Display for Reg {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let r = match self {
+            R0 => "R0",
+            R1 => "R1",
+            R2 => "R2",
+            R3 => "R3",
+            R4 => "R4",
+            R5 => "R5",
+            R6 => "R6",
+            R7 => "R7",
+            R8 => "R8",
+            R9 => "R9",
+            R10 => "R10",
+            R11 => "R11",
+            R12 => "R12",
+            R13 => "R13",
+            R14 => "R14",
+            R15 => "R15",
+        };
+        f.write_str(r)
+    }
+}
+
+impl From<&str> for Reg {
+    fn from(value: &str) -> Self {
+        match value {
+            "R0" => R0,
+            "R1" => R1,
+            "R2" => R2,
+            "R3" => R3,
+            "R4" => R4,
+            "R5" => R5,
+            "R6" => R6,
+            "R7" => R7,
+            "R8" => R8,
+            "R9" => R9,
+            "R10" => R10,
+            "R11" => R11,
+            "R12" => R12,
+            "R13" => R13,
+            "R14" => R14,
+            "R15" => R15,
+            _ => panic!("Could not parse {value}"),
+        }
+    }
 }
 
 impl From<Reg> for u8 {
