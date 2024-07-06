@@ -31,6 +31,9 @@ pub enum Instruction {
     Lte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 <= R2
     Gt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 > R2
     Gte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 >= R2
+    Fn(String),             // Define a function denoted by string
+    Call(String),           // Call the function denoted by string
+    Retfn,                  // Return from a function back to its caller
 }
 
 impl fmt::Display for Instruction {
@@ -55,6 +58,9 @@ impl fmt::Display for Instruction {
             Lte(r1, r2) => &format!("lte {r1} {r2}"),
             Gt(r1, r2) => &format!("gt {r1} {r2}"),
             Gte(r1, r2) => &format!("gte {r1} {r2}"),
+            Fn(f) => &format!("fn {f}"),
+            Call(f) => &format!("call {f}"),
+            Retfn => "retfn",
         };
         f.write_str(s)
     }
@@ -100,6 +106,27 @@ impl Instruction {
             Lte(r1, r2) => vec![0x16, r1 as u8, r2 as u8],
             Gt(r1, r2) => vec![0x17, r1 as u8, r2 as u8],
             Gte(r1, r2) => vec![0x18, r1 as u8, r2 as u8],
+            Fn(f) => {
+                if f.len() > u8::MAX.into() {
+                    panic!("The fn's name is too long. Functions can only be 255 characters long");
+                }
+                let mut res = vec![0x19];
+                let byte_len = f.len() as u8;
+                res.push(byte_len);
+                res.extend(f.as_bytes());
+                res
+            }
+            Call(f) => {
+                if f.len() > u8::MAX.into() {
+                    panic!("The fn to call's name is too long. Functions can only be 255 characters long");
+                }
+                let mut res = vec![0x20];
+                let byte_len = f.len() as u8;
+                res.push(byte_len);
+                res.extend(f.as_bytes());
+                res
+            }
+            Retfn => vec![0x21],
         }
     }
 }

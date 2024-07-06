@@ -3,7 +3,7 @@ use crate::{
     utils::{u8_to_i16, u8_to_u16, REGISTER_COUNT, STACK_SIZE},
 };
 
-use std::process::exit;
+use std::{collections::HashMap, process::exit};
 use Instruction::*;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -13,6 +13,8 @@ pub struct VM {
     ip: usize,
     instructions: Vec<Instruction>,
     cond: bool,
+    ip_stack: Vec<usize>,
+    functions: HashMap<String, usize>,
 }
 
 impl Default for VM {
@@ -23,12 +25,23 @@ impl Default for VM {
             ip: 0,
             instructions: Default::default(),
             cond: false,
+            ip_stack: Default::default(),
+            functions: HashMap::new(),
         }
     }
 }
 
 impl VM {
     pub fn run(&mut self, instructions: &[Instruction]) {
+        self.instructions = instructions.to_vec();
+
+        // first, loop through all instructions to find functions
+        for (index, instruction) in instructions.iter().enumerate() {
+            if let Fn(s) = instruction {
+                self.functions.insert(s.to_string(), index);
+            }
+        }
+
         while self.ip < instructions.len() {
             let instruction = &instructions[self.ip];
             self.run_instruction(instruction);
@@ -95,6 +108,26 @@ impl VM {
             Gte(r1, r2) => {
                 self.cond = self.registers[*r1 as usize] >= self.registers[*r2 as usize];
             }
+            Fn(_) => {
+                while self.instructions[self.ip] != Retfn {
+                    self.ip += 1;
+                }
+            }
+            Call(s) => match self.functions.get(s) {
+                Some(fn_loc) => {
+                    self.ip_stack.push(self.ip);
+                    self.ip = *fn_loc;
+                }
+                None => {
+                    panic!("Could not find function to call");
+                }
+            },
+            Retfn => match self.ip_stack.pop() {
+                Some(new_ip) => {
+                    self.ip = new_ip;
+                }
+                None => panic!("Could not find function caller"),
+            },
         }
     }
 }
@@ -186,6 +219,15 @@ pub fn asm_to_instructions(s: &str) -> Vec<Instruction> {
             }
             ["gte", r1, r2] => {
                 instructions.push(Gte(r1.to_owned().into(), r2.to_owned().into()));
+            }
+            ["fn", name] => {
+                instructions.push(Fn(name.to_string()));
+            }
+            ["call", name] => {
+                instructions.push(Call(name.to_string()));
+            }
+            ["retfn"] => {
+                instructions.push(Retfn);
             }
             _ => panic!("Invalid instruction: {l}"),
         }
@@ -283,6 +325,30 @@ pub fn bytes_to_instructions(bytes: &[u8]) -> Vec<Instruction> {
                 instructions.push(Gte(bytes[i + 1].into(), bytes[i + 2].into()));
                 i += 3;
             }
+            0x19 => {
+                let len = bytes[i + 1] as usize;
+                let start = i + 2;
+                let name = &bytes[start..start + len];
+                let s = std::str::from_utf8(name)
+                    .expect("Could not recover fn name")
+                    .to_string();
+                instructions.push(Call(s));
+                i += len + 2;
+            }
+            0x20 => {
+                let len = bytes[i + 1] as usize;
+                let start = i + 2;
+                let name = &bytes[start..start + len];
+                let s = std::str::from_utf8(name)
+                    .expect("Could not recover fn name")
+                    .to_string();
+                instructions.push(Call(s));
+                i += len + 2;
+            }
+            0x21 => {
+                instructions.push(Retfn);
+                i += 1;
+            }
             _ => panic!("invalid byte: {byte}"),
         }
     }
@@ -368,6 +434,9 @@ mod tests {
                     rng.gen_range(0..=u8::MAX).into(),
                     rng.gen_range(0..=u8::MAX).into(),
                 ),
+                0x19 => Fn("ex_fn".to_string()),
+                0x20 => Call("ex_fn".to_string()),
+                0x21 => Retfn,
                 _ => unreachable!(),
             }
         }

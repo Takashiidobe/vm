@@ -95,6 +95,9 @@ pub enum Instruction {
     Lte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 <= R2
     Gt(Reg, Reg),           // Compare R1 to R2, setting the condition flag to R1 > R2
     Gte(Reg, Reg),          // Compare R1 to R2, setting the condition flag to R1 >= R2
+    Fn(String),             // Define a function denoted by string
+    Call(String),           // Call the function denoted by string
+    Retfn,                  // Return from a function back to its caller
 }
 ```
 
